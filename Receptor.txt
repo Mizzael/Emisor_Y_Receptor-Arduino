@@ -1,0 +1,70 @@
+Recepor!!
+// Librerías:
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <VirtualWire.h>
+
+//Variables de los datos recibidos
+float dato1 = 0.0;
+float dato2 = 0.0;
+float dato3 = 0.0;
+
+
+void setup()
+{
+  Serial.begin(9600);
+  // Se inicializa el RF
+ vw_setup(2000);  // velocidad: Bits per segundo
+ vw_rx_start();   // Se inicia como receptor
+ lcd.begin(16,2);
+}
+void loop()
+{
+  uint8_t buf[VW_MAX_MESSAGE_LEN];
+  uint8_t buflen = VW_MAX_MESSAGE_LEN;
+
+  //verificamos si hay un dato valido en el RF
+  if (vw_get_message((uint8_t *)buf, &buflen))
+  {
+    int i;
+    String  DatoCadena = "";
+    if ((char)buf[0] == 'i') //verificamos el inicio de trama
+    {
+      for (i = 1; i < buflen; i++)
+      {
+        DatoCadena.concat((char)buf[i]);
+      }
+      dato1 = DatoCadena.toFloat();
+      //Serial.print("Hum: "); Serial.print(dato1); Serial.println(" %");
+    }
+    else if ((char)buf[0] == 'f') //verificamos el inicio de trama
+    {
+      for (i = 1; i < buflen; i++)
+      {
+        DatoCadena.concat((char)buf[i]);
+      }
+      dato2 = DatoCadena.toFloat();
+     // Serial.print("Temp: "); Serial.print(dato2);Serial.println("C");
+  }
+  else if((char)buf[0] == 't') //verificamos el inicio de trama
+    {
+      for (i = 1; i < buflen; i++)
+      {
+        DatoCadena.concat((char)buf[i]);
+      }
+      dato3 = DatoCadena.toFloat();
+      //Serial.print("HumTierra: "); Serial.print(dato3);Serial.println("%");
+  }
+  Serial.print(dato1);Serial.print(",");
+  Serial.print(dato2);Serial.print(",");
+  Serial.print(dato3);Serial.print(",");
+  Serial.println("4");
+  delay(60000);
+  
+}
+  /*Serial.print("1");Serial.print(",");
+  Serial.print("2");Serial.print(",");
+  Serial.print("3");Serial.print(",");
+  Serial.println("4");
+  delay(500);*/
+}

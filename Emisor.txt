@@ -1,0 +1,156 @@
+#include <OneWire.h>
+#include "DHT.h"
+#include <VirtualWire.h>
+#include <DallasTemperature.h>
+#include <Wire.h> 
+#include <LiquidCrystal_I2C.h>
+
+#define DHTPIN 2
+#define DHTTYPE DHT11
+#define ONE_WIRE_BUS 4
+
+LiquidCrystal_I2C lcd(0x27,20,4);
+OneWire oneWire(ONE_WIRE_BUS);
+DallasTemperature sensors(&oneWire);
+DHT dht(DHTPIN, DHTTYPE);
+
+int rojo = 6;
+int verde = 5;
+int azul = 3;
+int red = 11;
+int green = 10;
+int blue = 9;
+int bomba = 7;
+
+void setup(){
+  lcd.init();                   
+  lcd.init();
+  lcd.backlight();
+    //Serial
+  Serial.begin(9600);
+  //Sensor dht
+  dht.begin();
+   vw_setup(2000);
+ sensors.begin();
+ pinMode(rojo, OUTPUT);
+ pinMode(verde, OUTPUT);
+ pinMode(azul, OUTPUT);
+ pinMode(red, OUTPUT);
+ pinMode(green, OUTPUT);
+ pinMode(blue, OUTPUT);
+ pinMode(bomba, OUTPUT);
+}
+ int lectura;
+void loop(){
+  
+  float h = dht.readHumidity(); //Se lee la humedad
+  float t = dht.readTemperature(); //Se lee la temperatura
+  lectura=analogRead(0);
+  float lecturaP = map(lectura, 1023, 0, 0, 100);
+  sensors.requestTemperatures(); 
+  float a=sensors.getTempCByIndex(0);  
+  char buf[VW_MAX_MESSAGE_LEN]; // Cadena para enviar
+  String str = "";
+
+//Humedad relativa
+  str = "i" + String(h); //convertimos el float a String y agregamos un inicio de trama
+  str.toCharArray(buf, sizeof(buf)); //convertimos el String en un array
+  vw_send((uint8_t *)buf, strlen(buf)); //Enviamos el array
+  vw_wait_tx(); //Esperamos hasta que el mensaje se envie
+//Temperatura relativa
+  str = "f" + String(t); //convertimos el float a String y agramos un inicio de trama
+  str.toCharArray(buf, sizeof(buf)); //convertimos el String en un array
+  vw_send((uint8_t *)buf, strlen(buf)); ////Enviamos el array
+  vw_wait_tx(); //Esperamos hasta que el mensaje se envie
+//Humedad Tierra
+  str = "t" + String(lecturaP); //convertimos el float a String y agregamos un inicio de trama
+  str.toCharArray(buf, sizeof(buf)); //convertimos el String en un array
+  vw_send((uint8_t *)buf, strlen(buf)); //Enviamos el array
+  vw_wait_tx(); //Esperamos hasta que el mensaje se envie
+  delay(20);
+//Temperatura agua
+  str = "a" + String(sensors.getTempCByIndex(0)); //convertimos el float a String y agregamos un inicio de trama
+  str.toCharArray(buf, sizeof(buf)); //convertimos el String en un array
+  vw_send((uint8_t *)buf, strlen(buf)); //Enviamos el array
+  vw_wait_tx(); //Esperamos hasta que el mensaje se envie
+  Serial.print(t);Serial.print(",");
+  Serial.print(h);Serial.print(",");
+  Serial.print(lecturaP);Serial.print(",");
+  Serial.println(a);
+  //LCD
+  lcd.setCursor(0,0);
+  lcd.print("Temp agua:");
+  lcd.print(a,1);
+  lcd.print("C");
+  lcd.setCursor(0,1);
+  lcd.print("Hum Tierra:");
+  lcd.print(lecturaP,1);
+  lcd.print("%");
+  delay(8000);
+  lcd.clear();//Limpiamos la pantalla para un nuevo texto
+  lcd.setCursor(3,0); //Start at character 0 on line 0
+  lcd.print("Acuaponia");
+  lcd.setCursor(2,1);
+  lcd.print("GAIA-SYSTEM");
+delay(2000);
+//LED RGB temperaturas
+if(t>42 || a>42){
+  analogWrite(rojo, 255);
+  analogWrite(verde, 0);
+   analogWrite(azul, 0);
+  }else if(t>37 || a>37){
+    analogWrite(rojo, 255);
+    analogWrite(verde, 255);
+   analogWrite(azul, 0);
+  }else if(t>20 || a>20){
+    analogWrite(rojo, 0);
+    analogWrite(verde, 255);
+   analogWrite(azul, 0);
+  }else if(t>15 || a>15){
+    analogWrite(rojo, 255);
+    analogWrite(verde, 255);
+   analogWrite(azul, 0);
+  }else if(t>=0 || a>=0){
+    analogWrite(rojo, 255);
+    analogWrite(verde, 0);
+   analogWrite(azul, 0);
+  }
+  else{
+    analogWrite(rojo, 160);
+    analogWrite(verde, 63);
+    analogWrite(azul, 243);
+  }
+    //LED RGB humedades
+if(h>60 ||lecturaP>60){
+  analogWrite(red, 255);
+  analogWrite(green, 0);
+   analogWrite(blue, 0);
+  }else if(h>50 || lecturaP>50){
+    analogWrite(red, 255);
+    analogWrite(green, 255);
+   analogWrite(blue, 0);
+  }else if(h>30 || lecturaP>30){
+    analogWrite(red, 0);
+    analogWrite(green, 255);
+   analogWrite(blue, 0);
+  }else if(h>20 || lecturaP>20){
+    analogWrite(red, 255);
+    analogWrite(green, 255);
+   analogWrite(blue, 0);
+  }else if(h>=0 || lecturaP>=0){
+    analogWrite(red, 255);
+    analogWrite(green, 0);
+   analogWrite(blue, 0);
+  }
+  else{
+    analogWrite(red, 160);
+    analogWrite(green, 63);
+    analogWrite(blue, 243);
+  }
+ //BOMBA 
+  if(lecturaP<=25){
+    digitalWrite(bomba, HIGH);
+    delay(180000);
+    }else{
+      digitalWrite(bomba, LOW);
+      }
